@@ -1,5 +1,4 @@
-<<<<<<< Updated upstream
-=======
+
 const express = require("express");
 const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
@@ -110,4 +109,4 @@ app.get("/protected", verifyToken, (req, res) => {
 // ✅ Start Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
->>>>>>> Stashed changes
+
