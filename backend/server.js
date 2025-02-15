@@ -1,124 +1,110 @@
 const express = require("express");
-const { expressjwt: jwt } = require("express-jwt");
-const jwks = require("jwks-rsa");
-const { MongoClient } = require("mongodb");
-const bcrypt = require("bcrypt");
-const jwtLib = require("jsonwebtoken");
+const mongoose = require("mongoose");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const dotenv = require("dotenv");
 const cors = require("cors");
 
+dotenv.config();
 const app = express();
 app.use(express.json());
+app.use(cors()); // Allow CORS for frontend requests
 
-// Auth0 Config
-const AUTH0_DOMAIN = "dev-h32e7d3l5lrftxe4.us.auth0.com";
-const AUTH0_AUDIENCE = "https://dev-h32e7d3l5lrftxe4.us.auth0.com/api/v2/";
-const JWT_SECRET = "your_jwt_secret"; // Replace with a secure value in production
+// ✅ Secure MongoDB Connection from .env
+const MONGO_URI = process.env.MONGO_URI;
 
-// MongoDB Config
-const MONGO_URI = "mongodb+srv://Giterdone:Ellehacks2025@aegis.6h05z.mongodb.net/?retryWrites=true&w=majority&appName=Aegis";
-const client = new MongoClient(MONGO_URI);
+mongoose.connect(MONGO_URI)
+  .then(() => console.log("✅ Connected to MongoDB Atlas"))
+  .catch(err => console.error("❌ MongoDB Connection Error:", err));
 
-const checkJwt = jwt({
-    secret: jwks.expressJwtSecret({
-        cache: true,
-        rateLimit: true,
-        jwksRequestsPerMinute: 5,
-        jwksUri: `https://${AUTH0_DOMAIN}/.well-known/jwks.json`, // Replace with your Auth0 domain
-    }),
-    audience: AUTH0_AUDIENCE, // Replace with your Auth0 audience
-    issuer: `https://${AUTH0_DOMAIN}/`, // Replace with your Auth0 domain
-    algorithms: ["RS256"],
+// ✅ User Schema & Model
+const userSchema = new mongoose.Schema({
+  userId: { type: String, required: true, unique: true },
+  Fname: String,
+  Lname: String,
+  Password: { type: String, required: true },
+  Cfname: String,
+  Clname: String,
+  Cemail: { type: String, required: true, unique: true }
 });
 
-app.use(cors({
-    origin: "http://localhost:5173", // Replace with your React frontend URL
-    methods: ["GET", "POST"],
-    credentials: true
-}));
+const User = mongoose.model("User", userSchema);
 
-// Connect to MongoDB
-client.connect();
-const db = client.db("HackWestern11");
-const users = db.collection("user");
-const admins = db.collection("admin");
+// ✅ Middleware to Verify JWT Token
+const verifyToken = (req, res, next) => {
+  const token = req.header("Authorization");
+  if (!token) return res.status(401).json({ message: "Access Denied" });
 
-// ** 1. Registration Endpoint **
-app.post("/api/register", async (req, res) => {
-    const { email, password, nickname } = req.body;
+  try {
+    const verified = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = verified;
+    next();
+  } catch (error) {
+    res.status(400).json({ message: "Invalid Token" });
+  }
+};
 
-    if (!email || !password || !nickname) {
-        return res.status(400).json({ error: "Email, password, and nickname are required" });
+// ✅ User Registration
+app.post("/register", async (req, res) => {
+  try {
+    const { userId, Fname, Lname, Password, Cfname, Clname, Cemail } = req.body;
+
+    // Check if userId or email already exists
+    if (await User.findOne({ userId })) {
+      return res.status(400).json({ message: "User ID already taken. Choose another." });
+    }
+    if (await User.findOne({ Cemail })) {
+      return res.status(400).json({ message: "Email already registered." });
     }
 
-    try {
-        const existingUser = await users.findOne({ email });
+    // Hash Password
+    const hashedPassword = await bcrypt.hash(Password, 10);
 
-        if (existingUser) {
-            return res.status(400).json({ error: "User already exists" });
-        }
+    // Save User
+    const newUser = new User({
+      userId,
+      Fname,
+      Lname,
+      Password: hashedPassword,
+      Cfname,
+      Clname,
+      Cemail
+    });
 
-        // Hash password before storing
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Save user to MongoDB
-        const newUser = {
-            email,
-            password: hashedPassword,
-            nickname,
-            createdAt: new Date(),
-        };
-
-        await users.insertOne(newUser);
-
-        res.status(201).json({ message: "User registered successfully", user: { email, nickname } });
-    } catch (error) {
-        console.error("Error during registration:", error);
-        res.status(500).json({ error: "Failed to register user" });
-    }
+    await newUser.save();
+    res.status(201).json({ message: "✅ User registered successfully", userId });
+  } catch (error) {
+    res.status(500).json({ message: "❌ Error registering user", error });
+  }
 });
 
-// ** 2. Login Endpoint for Users **
-app.post("/api/login", async (req, res) => {
-    const { email, password } = req.body;
+// ✅ User Login
+app.post("/login", async (req, res) => {
+  try {
+    const { userId, Password } = req.body;
 
-    if (!email || !password) {
-        return res.status(400).json({ error: "Email and password are required" });
-    }
+    // Find User
+    const user = await User.findOne({ userId });
+    if (!user) return res.status(400).json({ message: "❌ User ID not found" });
 
-    try {
-        const user = await users.findOne({ email });
+    // Compare Password
+    const isMatch = await bcrypt.compare(Password, user.Password);
+    if (!isMatch) return res.status(400).json({ message: "❌ Invalid credentials" });
 
-        console.log("User fetched from DB:", user);
+    // Generate Token
+    const token = jwt.sign({ userId: user.userId }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
-        if (!user) {
-            return res.status(400).json({ error: "Invalid email or password" });
-        }
-
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        console.log("Password comparison result:", isPasswordValid);
-
-        if (!isPasswordValid) {
-            return res.status(400).json({ error: "Invalid email or password" });
-        }
-
-        const token = jwtLib.sign(
-            {
-                userId: user._id,
-                email: user.email,
-                nickname: user.nickname,
-            },
-            JWT_SECRET,
-            { expiresIn: "1h" }
-        );
-
-        res.status(200).json({ message: "Login successful", token });
-    } catch (error) {
-        console.error("Error during login:", error);
-        res.status(500).json({ error: "Failed to log in" });
-    }
+    res.json({ message: "✅ Login successful", token });
+  } catch (error) {
+    res.status(500).json({ message: "❌ Error logging in", error });
+  }
 });
 
-app.listen(3000, () => {
-    console.log("Server running on port 3000");
+// ✅ Protected Route
+app.get("/protected", verifyToken, (req, res) => {
+  res.json({ message: "✅ You have access to this protected route", user: req.user });
 });
 
+// ✅ Start Server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
