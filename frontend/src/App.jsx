@@ -2,8 +2,8 @@ import { useState } from "react";
 import reactLogo from "./assets/react.svg";
 import viteLogo from "/vite.svg";
 import "./App.css";
-import login from "./login";
-import ImgUploader from "./components/ImgUploader.jsx"
+// import login from "./login";
+import ImgUploader from "./components/ImgUploader.jsx";
 
 function App() {
   const [count, setCount] = useState(0);
@@ -11,7 +11,9 @@ function App() {
   return (
     <>
       <h1>Artemis</h1>
-      <login />
+      <ImgUploader />
+      {/* <login /> */}
+      {/* commented login out for now because it gives an error because login doesn't exist */}
     </>
   );
 }
