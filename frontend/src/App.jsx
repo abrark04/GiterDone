@@ -6,7 +6,14 @@ import login from "./login"
 
 
 function App() {
-  const [count, setCount] = useState(0);
+
+  return (
+    <div>
+      <LoginPage /> {/* Return the LoginPage component here */}
+    </div>
+  );
+
+  //const [count, setCount] = useState(0);
 
   // return (
   //   <>
@@ -14,9 +21,7 @@ function App() {
   //   </>
   // );
 
-  
-    return <login/>;
-  
+
   
 }
 
