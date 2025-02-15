@@ -2,14 +2,14 @@ import { useState } from "react";
 import reactLogo from "./assets/react.svg";
 import viteLogo from "/vite.svg";
 import "./App.css";
-import login from "./login"
+import LoginPage from "./LoginPage"
 
 
 function App() {
 
   return (
     <div>
-      <login/> {/* Return the LoginPage component here */}
+      <LoginPage /> {/* Return the LoginPage component here */}
     </div>
   );
 
