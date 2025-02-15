@@ -9,15 +9,17 @@ function App() {
 
   return (
     <div>
-      <LoginPage /> {/* Return the LoginPage component here */}
+      <login/> {/* Return the LoginPage component here */}
     </div>
   );
+
 
   //const [count, setCount] = useState(0);
 
   // return (
   //   <>
   //     <h1>Artemis</h1>
+
   //   </>
   // );
 
