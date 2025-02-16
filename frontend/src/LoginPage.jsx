@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, CardContent, Button, TextField, Typography, Link, Box } from "@mui/material";
 import { motion } from "framer-motion";
-import shieldImage from "./assets/shield.png"; // Import the shield image
+import shieldImage from "./assets/pictures/shield.png"; // Import the shield image
 
 export default function LoginPage() {
   return (
