@@ -3,6 +3,7 @@ import reactLogo from "./assets/react.svg";
 import viteLogo from "/vite.svg";
 import "./App.css";
 import LoginPage from "./LoginPage"
+import LandingPage from "./LandingPage"
 
 
 function App() {
@@ -12,6 +13,13 @@ function App() {
       <LoginPage /> {/* Return the LoginPage component here */}
     </div>
   );
+
+  return (
+    <div>
+      <LandingPage />
+    </div>
+  );
+
 
 
   //const [count, setCount] = useState(0);
