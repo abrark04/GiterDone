@@ -101,7 +101,7 @@ export default function LoginPage() {
                   mb: 2,
                 }}
               >
-                WELCOME TO AEGIS!
+                Welcome to AegiShield
               </Typography>
               <Typography
                 variant="body1"
